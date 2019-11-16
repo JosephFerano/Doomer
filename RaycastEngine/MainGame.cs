@@ -67,6 +67,8 @@ namespace RaycastEngine
             graphics.PreferredBackBufferWidth = 1920;  // set these values to the desired width and height of your window
             graphics.PreferredBackBufferHeight = 1080; // (if your computer struggles, either turn down number of levels rendered or turn this to something low, like 800 x 600)
             graphics.IsFullScreen = true;
+            graphics.SynchronizeWithVerticalRetrace = false;
+            this.IsFixedTimeStep = false;
             graphics.ApplyChanges();
         }
 
@@ -98,6 +100,8 @@ namespace RaycastEngine
             base.Initialize();
         }
 
+        private SpriteFont spriteFont;
+
         /// <summary>
         /// LoadContent will be called once per game and is the place to load
         /// all of your content.
@@ -106,6 +110,7 @@ namespace RaycastEngine
         {
             // Create a new SpriteBatch, which can be used to draw textures.
             spriteBatch = new SpriteBatch(GraphicsDevice);
+            spriteFont = Content.Load<SpriteFont>("DefaultFont");
 
             // TODO: use this.Content to load your game content here
             textures[0] = getTexture("stone");
@@ -174,8 +179,18 @@ namespace RaycastEngine
 
             spriteBatch.End();
 
+            fps.Update((float)gameTime.ElapsedGameTime.TotalSeconds);
+            spriteBatch.Begin();
+            var w = this.GraphicsDevice.Viewport.Width;
+            var hud = fps.AverageFramesPerSecond.ToString();
+
+            spriteBatch.DrawString(spriteFont, hud, new Vector2(w - 150.0f, 10.0f), Color.Red);
+            spriteBatch.End();
+
             base.Draw(gameTime);
         }
+
+        private FrameCounter fps = new FrameCounter();
 
         //returns an initialised Level struct
         public Level[] createLevels(int numLevels)
