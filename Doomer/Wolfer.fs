@@ -6,17 +6,13 @@ open Microsoft.Xna.Framework.Graphics
 open Microsoft.Xna.Framework.Input
 
 // TODO:
-// 1.) We have to look into billboarding for props, pick ups, and enemies
-// 1.) We have to look into billboarding
-// 5.) Texture blitting can be optimized in several ways;
-//     - Rotate canvas 90 clockwise, then fill in by rows, rather than by column, then roate in draw
+// 1.) Billboarding
+// 2.) Collision detection
+// 3.) Even further potential optimizations (low priority)
 //     - Either parallelize the whole raycasting routine, or the blitting loop
-//     - Have 2-3 color buffers and swap them, in case GPU is still processing and blocking as a consequence
 //     - Cache the angles (camX)
-//     - Use Array.fill instead?
 //     - Use Bitmap.LockBits as a potential optimization? Apparently it's faster than iterating over a Color[]
 //     - Review math with https://www.youtube.com/watch?v=eOCQfxRQ2pY
-//     - Look into profiling techniques. Need to know how fast things are
 type Wolfer () as this =
     inherit Game()
 
@@ -39,17 +35,12 @@ type Wolfer () as this =
     let mutable screenHeight = 0
     let fps = new FrameCounter()
     let mutable textures = Array.zeroCreate 11
-    let mutable timeElapsed = 0.0f
-    let measure = new Core.Measure()
+//    let mutable timeElapsed = 0.0f
+//    let measure = new Core.Measure()
 
-    let createMap =
-        let file = File.ReadAllText("map.txt")
-
-        let file = file.Replace("\n", "")
-        Array.init file.Length (fun i ->
-            match string file.[i] with
-            | " " -> 0uy
-            | d -> System.Byte.Parse d)
+    static let createMap =
+        let file = File.ReadAllText("map.txt").Replace("\n", "")
+        Array.init file.Length (fun i -> match string file.[i] with " " -> 0uy | d -> System.Byte.Parse d)
 
     do
         this.Content.RootDirectory <- "Content"
@@ -64,24 +55,25 @@ type Wolfer () as this =
         graphics.PreferredBackBufferHeight <- 1080
         graphics.SynchronizeWithVerticalRetrace <- false
         this.IsFixedTimeStep <- false
-//        graphics.PreferredBackBufferWidth <- 1024
-//        graphics.PreferredBackBufferHeight <- 576
         graphics.ApplyChanges()
 
         screenWidth <- this.GraphicsDevice.Viewport.Width
         screenHeight <- this.GraphicsDevice.Viewport.Height
-//        screenWidth <- 512
-//        screenHeight <- 288
-        texture <- new Texture2D(this.GraphicsDevice, screenWidth, screenHeight)
+        texture  <- new Texture2D(this.GraphicsDevice, screenHeight, screenWidth)
         colors <- Array.create (screenWidth * screenHeight) Color.White
 
     override this.LoadContent() =
         spriteBatch <- new SpriteBatch(this.GraphicsDevice)
         spriteFont <- this.Content.Load<SpriteFont>("DefaultFont")
         let getPixels (t : Texture2D) =
-            let mutable pixels : Color array = Array.zeroCreate (texWidth * texWidth)
+            let length = texWidth * texWidth
+            let mutable pixels : Color array = Array.zeroCreate length
+            let mutable target : Color array = Array.zeroCreate length
             t.GetData(pixels)
-            pixels
+            for i = 0 to length - 1 do
+//                printfn "%i %i %i %i" length (i / texWidth) (i * texWidth) (i / texWidth + i * texWidth)
+                target.[i] <- pixels.[i / texWidth + (i % texWidth) * texWidth]
+            target
         textures.[0]  <- getPixels (this.Content.Load<Texture2D>("textures/wood"))
         textures.[1]  <- getPixels (this.Content.Load<Texture2D>("textures/greystone"))
         textures.[2]  <- getPixels (this.Content.Load<Texture2D>("textures/mossy"))
@@ -95,7 +87,7 @@ type Wolfer () as this =
         textures.[10] <- getPixels (this.Content.Load<Texture2D>("textures/greenlight"))
 
     override this.Update (gameTime) =
-        measure.Reset()
+//        measure.Reset()
         let dt = float32 gameTime.ElapsedGameTime.TotalSeconds
         let kbState = Keyboard.GetState()
         if (kbState.IsKeyDown(Keys.Escape))
@@ -105,8 +97,8 @@ type Wolfer () as this =
         let rotate speed =
             playerDir <- Vector2(playerDir.X * cos speed - playerDir.Y * sin speed,
                                  playerDir.X * sin speed + playerDir.Y * cos speed)
-            plane <- Vector2(plane.X * cos speed - plane.Y * sin speed,
-                             plane.X * sin speed + plane.Y * cos speed)
+            plane     <- Vector2(plane.X * cos speed - plane.Y * sin speed,
+                                 plane.X * sin speed + plane.Y * cos speed)
 
         if kbState.IsKeyDown Keys.Q then
             rotate rotSpeed
@@ -191,19 +183,19 @@ type Wolfer () as this =
                     then texWidth - n - 1
                     else n
 
-            measure.StartNoReset()
+//            measure.StartNoReset()
 
-            let inline setColor y color = colors.[y * screenWidth + x] <- color
+            let inline setColor y color = colors.[x * screenHeight + y] <- color
 
-            for y = 0 to drawStart do
+            for y = 0 to drawStart - 1 do
                 setColor y sky
             for y = drawEnd to screenHeight - 1 do
                 setColor y ground
 
-            for y = drawStart + 1 to drawEnd - 1 do
+            for y = drawStart to drawEnd - 1 do
                 let d = y * 256 - int h * 128 + lineHeight * 128
                 let texY = d * texWidth / lineHeight / 256
-                let pixel = textures.[wallIndex].[texWidth * int texY + texX]
+                let pixel = textures.[wallIndex].[texWidth * int texX + texY]
                 if side = 1
 //                    then setColor y (Color(pixel.R >>> 1 |> int, pixel.G >>> 1 |> int, pixel.B >>> 1 |> int))
                     then
@@ -211,15 +203,15 @@ type Wolfer () as this =
                         setColor y (Color(packedValue))
                     else setColor y pixel
 
-            measure.StopNoRecord()
+//            measure.StopNoRecord()
 
-        measure.Stop()
+//        measure.Stop()
 
-        timeElapsed <- timeElapsed + dt
-        if timeElapsed > 2.0f then
-            printfn "%f" <| measure.GetAverage()
-            measure.SortAndPrint()
-            timeElapsed <- 0.0f
+//        timeElapsed <- timeElapsed + dt
+//        if timeElapsed > 2.0f then
+//            printfn "%f" <| measure.GetAverage()
+//            measure.SortAndPrint()
+//            timeElapsed <- 0.0f
 
         base.Update(gameTime)
 
@@ -229,11 +221,12 @@ type Wolfer () as this =
         hud <- string <| int fps.AverageFramesPerSecond
 
         texture.SetData colors
+
         spriteBatch.Begin()
 
         let w = this.GraphicsDevice.Viewport.Width
         let h = this.GraphicsDevice.Viewport.Height
-        spriteBatch.Draw(texture, new Rectangle(0, 0, w, h), Unchecked.defaultof<_>, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.0f)
+        spriteBatch.Draw(texture, new Rectangle(0, 0, h, w), Unchecked.defaultof<_>, Color.White, 3.141592f * 0.5f, Vector2(0.0f, float32 w), SpriteEffects.FlipVertically, 0.0f)
 
         spriteBatch.End()
 
