@@ -1,7 +1,7 @@
 module Playground.Core
 
+open System.Diagnostics
 open Microsoft.Xna.Framework
-open Microsoft.Xna.Framework.Graphics
 open Microsoft.Xna.Framework.Input
 
 let screenRatio (game : Game) = float32 game.Window.ClientBounds.Width / float32 game.Window.ClientBounds.Height
@@ -21,3 +21,21 @@ let getMovementDir = function
 
 type Transform = { pos : Vector3 ; rot : float32 ; scale : Vector3 }
 
+type Measure() =
+    let samples = 50
+    let mutable measurements = Array.create samples 0L
+    let mutable index = 0
+    let mutable stopwatch = new Stopwatch()
+
+    member this.Start() = stopwatch.Start()
+    member this.Stop() =
+        stopwatch.Stop()
+        index <- (index + 1) % samples
+        measurements.[index] <- stopwatch.ElapsedMilliseconds
+
+    member this.GetAverage() =
+        Array.averageBy double measurements
+
+    member this.SortAndPrint() =
+        Array.sort measurements
+        |> printfn "%A"

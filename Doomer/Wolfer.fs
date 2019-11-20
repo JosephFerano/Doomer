@@ -32,11 +32,15 @@ type Wolfer () as this =
     let mutable plane = Vector2(0.0f, 0.66f)
     let mutable texture = Unchecked.defaultof<Texture2D>
     let mutable colors = Unchecked.defaultof<Color array>
+    let sky = Color.SkyBlue
+    let ground = Color.DarkOliveGreen
     let texWidth = 64
     let mutable screenWidth = 0
     let mutable screenHeight = 0
     let fps = new FrameCounter()
     let mutable textures = Array.zeroCreate 11
+    let mutable timeElapsed = 0.0f
+    let measure = new Core.Measure()
 
     let createMap =
         let file = File.ReadAllText("map.txt")
@@ -54,14 +58,14 @@ type Wolfer () as this =
     override this.Initialize() =
         base.Initialize()
 
-//        graphics.IsFullScreen <- true;
+        graphics.IsFullScreen <- true;
 //        graphics.GraphicsProfile <- GraphicsProfile.HiDef;
-//        graphics.PreferredBackBufferWidth <- 1920
-//        graphics.PreferredBackBufferHeight <- 1080
+        graphics.PreferredBackBufferWidth <- 1920
+        graphics.PreferredBackBufferHeight <- 1080
         graphics.SynchronizeWithVerticalRetrace <- false
         this.IsFixedTimeStep <- false
-        graphics.PreferredBackBufferWidth <- 1024
-        graphics.PreferredBackBufferHeight <- 576
+//        graphics.PreferredBackBufferWidth <- 1024
+//        graphics.PreferredBackBufferHeight <- 576
         graphics.ApplyChanges()
 
         screenWidth <- this.GraphicsDevice.Viewport.Width
@@ -91,6 +95,7 @@ type Wolfer () as this =
         textures.[10] <- getPixels (this.Content.Load<Texture2D>("textures/greenlight"))
 
     override this.Update (gameTime) =
+        measure.Reset()
         let dt = float32 gameTime.ElapsedGameTime.TotalSeconds
         let kbState = Keyboard.GetState()
         if (kbState.IsKeyDown(Keys.Escape))
@@ -186,31 +191,35 @@ type Wolfer () as this =
                     then texWidth - n - 1
                     else n
 
+            measure.StartNoReset()
 
-            for y = 0 to screenHeight - 1 do
-                let setColor color = colors.[y * screenWidth + x] <- color
-                if y <= drawStart then
-                    setColor Color.SkyBlue
-                else if y > drawStart && y < drawEnd then
-                    let d = y * 256 - int h * 128 + lineHeight * 128
-                    let texY = d * texWidth / lineHeight / 256
-                    let pixel = textures.[wallIndex].[texWidth * int texY + texX]
-                    if side = 1
-                        then setColor <| Color(pixel.R >>> 1 |> int, pixel.G >>> 1 |> int, pixel.B >>> 1 |> int)
-                        else setColor <| pixel
-                else
-                    setColor Color.DarkOliveGreen
+            let inline setColor y color = colors.[y * screenWidth + x] <- color
 
-//            for y = 0 to screenHeight - 1 do
-//                let inline setColor color = colors.[y * screenWidth + x] <- color
-//                if y <= drawStart then
-//                    setColor Color.SkyBlue
-//                else if y > drawStart && y <= drawEnd then
-//                    if side = 1
-//                        then setColor <| Color.DarkGray
-//                        else setColor <| Color.Gray
-//                else
-//                    setColor Color.DarkOliveGreen
+            for y = 0 to drawStart do
+                setColor y sky
+            for y = drawEnd to screenHeight - 1 do
+                setColor y ground
+
+            for y = drawStart + 1 to drawEnd - 1 do
+                let d = y * 256 - int h * 128 + lineHeight * 128
+                let texY = d * texWidth / lineHeight / 256
+                let pixel = textures.[wallIndex].[texWidth * int texY + texX]
+                if side = 1
+//                    then setColor y (Color(pixel.R >>> 1 |> int, pixel.G >>> 1 |> int, pixel.B >>> 1 |> int))
+                    then
+                        let mutable packedValue : uint32 = ((pixel.PackedValue >>> 1) &&& 0xFF7F7F7Fu) ||| (1u <<< 31)
+                        setColor y (Color(packedValue))
+                    else setColor y pixel
+
+            measure.StopNoRecord()
+
+        measure.Stop()
+
+        timeElapsed <- timeElapsed + dt
+        if timeElapsed > 2.0f then
+            printfn "%f" <| measure.GetAverage()
+            measure.SortAndPrint()
+            timeElapsed <- 0.0f
 
         base.Update(gameTime)
 
@@ -224,7 +233,7 @@ type Wolfer () as this =
 
         let w = this.GraphicsDevice.Viewport.Width
         let h = this.GraphicsDevice.Viewport.Height
-        spriteBatch.Draw(texture, new Rectangle(0, 0, w, h), Color.White)
+        spriteBatch.Draw(texture, new Rectangle(0, 0, w, h), Unchecked.defaultof<_>, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.0f)
 
         spriteBatch.End()
 
