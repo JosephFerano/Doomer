@@ -208,7 +208,7 @@ namespace RaycastEngine
                 }
             }
 
-            //Calculate distance of perpendicular ray (oblique distance will give fisheye effect!)
+            // Calculate distance of perpendicular ray (oblique distance will give fisheye effect!)
             if (side == 0) perpWallDist = (mapX - rayPosX + (1 - stepX) / 2) / rayDirX;
             else perpWallDist = (mapY - rayPosY + (1 - stepY) / 2) / rayDirY;
 

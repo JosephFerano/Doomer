@@ -6,11 +6,11 @@ open Microsoft.Xna.Framework.Graphics
 open Microsoft.Xna.Framework.Input
 
 // TODO:
-// 1.) Billboarding
-// 2.) Collision detection
+// 1.) Collision detection
+// 2.) Billboarding
 // 3.) Even further potential optimizations (low priority)
 //     - Either parallelize the whole raycasting routine, or the blitting loop
-//     - Cache the angles (camX)
+//     - Cache the angles (camX) (super micro)
 //     - Use Bitmap.LockBits as a potential optimization? Apparently it's faster than iterating over a Color[]
 //     - Review math with https://www.youtube.com/watch?v=eOCQfxRQ2pY
 type Wolfer () as this =
@@ -227,11 +227,8 @@ type Wolfer () as this =
         let w = this.GraphicsDevice.Viewport.Width
         let h = this.GraphicsDevice.Viewport.Height
         spriteBatch.Draw(texture, new Rectangle(0, 0, h, w), Unchecked.defaultof<_>, Color.White, 3.141592f * 0.5f, Vector2(0.0f, float32 w), SpriteEffects.FlipVertically, 0.0f)
-
-        spriteBatch.End()
-
-        spriteBatch.Begin()
         spriteBatch.DrawString(spriteFont, hud, Vector2(float32 w - 150.0f, 10.0f) , Color.Red)
+
         spriteBatch.End()
 
         base.Draw(gameTime)
