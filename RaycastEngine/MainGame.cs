@@ -41,9 +41,6 @@ namespace RaycastEngine
         //-test effect--//
         Effect effect;
 
-        //test sprite
-        Texture2D sprite;
-
         //--array of levels, levels reffer to "floors" of the world--//
         Level[] levels;
 
