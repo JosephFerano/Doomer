@@ -1,4 +1,4 @@
-﻿module Doomer
+module Doomer
 
 open Microsoft.Xna.Framework
 open Microsoft.Xna.Framework.Graphics
