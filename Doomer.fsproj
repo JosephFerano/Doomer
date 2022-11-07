@@ -6,6 +6,7 @@
         <RollForward>Major</RollForward>
         <PublishReadyToRun>false</PublishReadyToRun>
         <TieredCompilation>false</TieredCompilation>
+        <RootNamespace>OldDoomer</RootNamespace>
     </PropertyGroup>
     
     <ItemGroup>

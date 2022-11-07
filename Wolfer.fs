@@ -64,7 +64,7 @@ type Wolfer () as this =
 
     override this.LoadContent() =
         spriteBatch <- new SpriteBatch(this.GraphicsDevice)
-        // spriteFont <- this.Content.Load<SpriteFont>("DefaultFont.spritefont")
+        spriteFont <- this.Content.Load<SpriteFont>("DefaultFont")
         groundTex <- new Texture2D(this.GraphicsDevice, 1, 1)
         groundTex.SetData([| Color.DarkOliveGreen |])
         let getPixels (t : Texture2D) =
@@ -213,7 +213,7 @@ type Wolfer () as this =
             let texX = snd heights.[i]
             let y = 1080 - h / 2
             spriteBatch.Draw(textures.[0], Rectangle(i, y, 1, h), System.Nullable(Rectangle(texX, 0, 2, 64)), Color.White)
-        // spriteBatch.DrawString(spriteFont, hud, Vector2(float32 w - 150.0f, 10.0f) , Color.Red)
+        spriteBatch.DrawString(spriteFont, hud, Vector2(float32 w - 150.0f, 10.0f) , Color.Red)
 
         spriteBatch.End()
 
